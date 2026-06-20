@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{% if trek %}Edit Trek{% else %}Add New Trek{% endif %}</h2>
+
+<form method="POST">
+    <div class="mb-3">
+        <label>Trek Name</label>
+        <input type="text" name="name" class="form-control" value="{{ trek.name if trek else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Location</label>
+        <input type="text" name="location" class="form-control" value="{{ trek.location if trek else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Difficulty</label>
+        <select name="difficulty" class="form-control">
+            <option value="Easy" {% if trek and trek.difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+            <option value="Moderate" {% if trek and trek.difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
+            <option value="Hard" {% if trek and trek.difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>Duration (days)</label>
+        <input type="number" name="duration_days" class="form-control" value="{{ trek.duration_days if trek else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Total Slots</label>
+        <input type="number" name="total_slots" class="form-control" value="{{ trek.total_slots if trek else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Start Date</label>
+        <input type="date" name="start_date" class="form-control" value="{{ trek.start_date if trek else '' }}">
+    </div>
+    
+    {% if trek %}
+    <div class="mb-3">
+        <label>Status</label>
+        <select name="status" class="form-control">
+            <option value="Pending" {% if trek.status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Approved" {% if trek.status == 'Approved' %}selected{% endif %}>Approved</option>
+            <option value="Open" {% if trek.status == 'Open' %}selected{% endif %}>Open</option>
+            <option value="Closed" {% if trek.status == 'Closed' %}selected{% endif %}>Closed</option>
+            <option value="Completed" {% if trek.status == 'Completed' %}selected{% endif %}>Completed</option>
+        </select>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary">{% if trek %}Update Trek{% else %}Create Trek{% endif %}</button>
+</form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Manage Treks</h2>
+<a href="{{ url_for('admin_add_trek') }}" class="btn btn-success mb-3">Add New Trek</a>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Difficulty</th>
+            <th>Duration (days)</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Slots (avail/total)</th>
+            <th>Status</th>
+            <th>Assigned Staff</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for trek in treks %}
+        <tr>
+            <td>{{ trek.id }}</td>
+            <td>{{ trek.name }}</td>
+            <td>{{ trek.location }}</td>
+            <td>{{ trek.difficulty }}</td>
+            <td>{{ trek.duration_days }}</td>
+            <td>{{ trek.start_date }}</td>
+            <td>{{ trek.end_date }}</td>
+            <td>{{ trek.available_slots }} / {{ trek.total_slots }}</td>
+            <td>{{ trek.status }}</td>
+            <td>
+                {% if trek.assigned_staff %}
+                    {{ trek.assigned_staff.user.name }}
+                {% else %}
+                    Not Assigned
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('admin_edit_trek', trek_id=trek.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                <form method="POST" action="{{ url_for('admin_delete_trek', trek_id=trek.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
