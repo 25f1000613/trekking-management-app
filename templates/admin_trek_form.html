@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>{% if trek %}Edit Trek{% else %}Add New Trek{% endif %}</h2>
+<a href="{{ url_for('admin_treks') }}" class="btn btn-secondary btn-sm mb-3">← Back to Treks</a>
 
 <form method="POST">
     <div class="mb-3">
@@ -26,6 +27,17 @@
     <div class="mb-3">
         <label>Total Slots</label>
         <input type="number" name="total_slots" class="form-control" value="{{ trek.total_slots if trek else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label>Assign Staff</label>
+        <select name="staff_id" class="form-control">
+            <option value="">-- None --</option>
+            {% for staff in available_staff %}
+            <option value="{{ staff.staff_profile.id }}" {% if trek and trek.staff_id == staff.staff_profile.id %}selected{% endif %}>
+                {{ staff.name }} ({{ staff.email }})
+            </option>
+            {% endfor %}
+        </select>
     </div>
     <div class="mb-3">
         <label>Start Date</label>

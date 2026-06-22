@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Manage Users (Trekkers)</h2>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm mb-3">← Back to Dashboard</a>
+
+<form method="GET" class="mb-3">
+    <div class="input-group" style="max-width: 400px;">
+        <input type="text" name="q" class="form-control" placeholder="Search by name or ID" value="{{ query }}">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+    </div>
+</form>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Blacklisted</th>
+            <th>Total Bookings</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users_list %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ 'Yes' if user.is_blacklisted else 'No' }}</td>
+            <td>{{ user.bookings|length }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('admin_blacklist_user', user_id=user.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        {{ 'Un-blacklist' if user.is_blacklisted else 'Blacklist' }}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

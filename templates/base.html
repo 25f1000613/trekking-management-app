@@ -8,7 +8,15 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">Trekking App</a>
+            {% if session.get('role') == 'admin' %}
+                <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Trekking App</a>
+            {% elif session.get('role') == 'staff' %}
+                <a class="navbar-brand" href="{{ url_for('staff_dashboard') }}">Trekking App</a>
+            {% elif session.get('role') == 'trekker' %}
+                <a class="navbar-brand" href="{{ url_for('user_dashboard') }}">Trekking App</a>
+            {% else %}
+                <a class="navbar-brand" href="{{ url_for('login') }}">Trekking App</a>
+            {% endif %}
             <div>
                 {% if session.get('user_id') %}
                     <span class="text-light me-3">Logged in as {{ session.get('name') }} ({{ session.get('role') }})</span>

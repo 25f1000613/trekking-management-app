@@ -157,8 +157,15 @@ def admin_dashboard():
 @app.route('/admin/treks')
 @login_required(role='admin')
 def admin_treks():
-    treks = Trek.query.all()
-    return render_template('admin_treks.html', treks=treks)
+    query = request.args.get('q', '')
+    treks_query = Trek.query
+    if query:
+        if query.isdigit():
+            treks_query = treks_query.filter(Trek.id == int(query))
+        else:
+            treks_query = treks_query.filter(Trek.name.ilike(f'%{query}%'))
+    treks = treks_query.all()
+    return render_template('admin_treks.html', treks=treks, query=query)
 
 
 @app.route('/admin/treks/add', methods=['GET', 'POST'])
@@ -174,6 +181,7 @@ def admin_add_trek():
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
         end_date = start_date + timedelta(days=duration_days) if start_date else None
 
+        staff_id = request.form.get('staff_id')
         new_trek = Trek(
             name=name,
             location=location,
@@ -183,14 +191,16 @@ def admin_add_trek():
             available_slots=total_slots,
             status='Pending',
             start_date=start_date,
-            end_date=end_date
+            end_date=end_date,
+            staff_id=int(staff_id) if staff_id else None
         )
         db.session.add(new_trek)
         db.session.commit()
         flash('Trek created successfully.')
         return redirect(url_for('admin_treks'))
 
-    return render_template('admin_trek_form.html', trek=None)
+    available_staff = User.query.filter_by(role='staff', is_approved=True, is_blacklisted=False).all()
+    return render_template('admin_trek_form.html', trek=None, available_staff=available_staff)
 
 
 @app.route('/admin/treks/edit/<int:trek_id>', methods=['GET', 'POST'])
@@ -205,6 +215,8 @@ def admin_edit_trek(trek_id):
         trek.duration_days = int(request.form.get('duration_days'))
         trek.total_slots = int(request.form.get('total_slots'))
         trek.status = request.form.get('status')
+        staff_id = request.form.get('staff_id')
+        trek.staff_id = int(staff_id) if staff_id else None
 
         start_date_str = request.form.get('start_date')
         trek.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
@@ -213,7 +225,8 @@ def admin_edit_trek(trek_id):
         flash('Trek updated successfully.')
         return redirect(url_for('admin_treks'))
 
-    return render_template('admin_trek_form.html', trek=trek)
+    available_staff = User.query.filter_by(role='staff', is_approved=True, is_blacklisted=False).all()
+    return render_template('admin_trek_form.html', trek=trek, available_staff=available_staff)
 
 
 @app.route('/admin/treks/delete/<int:trek_id>', methods=['POST'])
@@ -227,6 +240,65 @@ def admin_delete_trek(trek_id):
     db.session.commit()
     flash('Trek deleted successfully.')
     return redirect(url_for('admin_treks'))
+
+@app.route('/admin/staff')
+@login_required(role='admin')
+def admin_staff():
+    query = request.args.get('q', '')
+    staff_query = User.query.filter_by(role='staff')
+    if query:
+        if query.isdigit():
+            staff_query = staff_query.filter(User.id == int(query))
+        else:
+            staff_query = staff_query.filter(User.name.ilike(f'%{query}%'))
+    staff_list = staff_query.all()
+    return render_template('admin_staff.html', staff_list=staff_list, query=query)
+
+
+@app.route('/admin/staff/approve/<int:user_id>', methods=['POST'])
+@login_required(role='admin')
+def admin_approve_staff(user_id):
+    staff = User.query.get_or_404(user_id)
+    staff.is_approved = True
+    db.session.commit()
+    flash(f'{staff.name} has been approved.')
+    return redirect(url_for('admin_staff'))
+
+
+@app.route('/admin/staff/blacklist/<int:user_id>', methods=['POST'])
+@login_required(role='admin')
+def admin_blacklist_staff(user_id):
+    staff = User.query.get_or_404(user_id)
+    staff.is_blacklisted = not staff.is_blacklisted
+    db.session.commit()
+    action = 'blacklisted' if staff.is_blacklisted else 'un-blacklisted'
+    flash(f'{staff.name} has been {action}.')
+    return redirect(url_for('admin_staff'))
+
+
+@app.route('/admin/users')
+@login_required(role='admin')
+def admin_users():
+    query = request.args.get('q', '')
+    users_query = User.query.filter_by(role='trekker')
+    if query:
+        if query.isdigit():
+            users_query = users_query.filter(User.id == int(query))
+        else:
+            users_query = users_query.filter(User.name.ilike(f'%{query}%'))
+    users_list = users_query.all()
+    return render_template('admin_users.html', users_list=users_list, query=query)
+
+
+@app.route('/admin/users/blacklist/<int:user_id>', methods=['POST'])
+@login_required(role='admin')
+def admin_blacklist_user(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_blacklisted = not user.is_blacklisted
+    db.session.commit()
+    action = 'blacklisted' if user.is_blacklisted else 'un-blacklisted'
+    flash(f'{user.name} has been {action}.')
+    return redirect(url_for('admin_users'))
 
 with app.app_context():
     db.create_all()

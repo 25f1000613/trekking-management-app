@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Manage Treks</h2>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm mb-3">← Back to Dashboard</a>
+<form method="GET" class="mb-3">
+    <div class="input-group" style="max-width: 400px;">
+        <input type="text" name="q" class="form-control" placeholder="Search by name or ID" value="{{ query }}">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+    </div>
+</form>
 <a href="{{ url_for('admin_add_trek') }}" class="btn btn-success mb-3">Add New Trek</a>
 
 <table class="table table-bordered">

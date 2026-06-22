@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Manage Trek Staff</h2>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm mb-3">← Back to Dashboard</a>
+
+<form method="GET" class="mb-3">
+    <div class="input-group" style="max-width: 400px;">
+        <input type="text" name="q" class="form-control" placeholder="Search by name or ID" value="{{ query }}">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+    </div>
+</form>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Approved</th>
+            <th>Blacklisted</th>
+            <th>Assigned Treks</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for staff in staff_list %}
+        <tr>
+            <td>{{ staff.id }}</td>
+            <td>{{ staff.name }}</td>
+            <td>{{ staff.email }}</td>
+            <td>{{ staff.staff_profile.phone_number }}</td>
+            <td>{{ 'Yes' if staff.is_approved else 'No' }}</td>
+            <td>{{ 'Yes' if staff.is_blacklisted else 'No' }}</td>
+            <td>
+                {% if staff.staff_profile.treks %}
+                    {% for trek in staff.staff_profile.treks %}
+                        {{ trek.name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    None
+                {% endif %}
+            </td>
+            <td>
+                {% if not staff.is_approved %}
+                <form method="POST" action="{{ url_for('admin_approve_staff', user_id=staff.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin_blacklist_staff', user_id=staff.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        {{ 'Un-blacklist' if staff.is_blacklisted else 'Blacklist' }}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
