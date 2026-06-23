@@ -128,11 +128,6 @@ def logout():
 
 
 
-@app.route('/staff/dashboard')
-@login_required(role='staff')
-def staff_dashboard():
-    return f"Welcome Staff {session.get('name')} (dashboard coming soon)"
-
 
 @app.route('/user/dashboard')
 @login_required(role='trekker')
@@ -299,6 +294,73 @@ def admin_blacklist_user(user_id):
     action = 'blacklisted' if user.is_blacklisted else 'un-blacklisted'
     flash(f'{user.name} has been {action}.')
     return redirect(url_for('admin_users'))
+
+@app.route('/staff/dashboard')
+@login_required(role='staff')
+def staff_dashboard():
+    staff_profile = StaffProfile.query.filter_by(user_id=session['user_id']).first()
+    if not staff_profile:
+        flash('Staff profile not found.')
+        return redirect(url_for('logout'))
+    assigned_treks = Trek.query.filter_by(staff_id=staff_profile.id).all()
+    trek_data = []
+    for trek in assigned_treks:
+        booking_count = Booking.query.filter_by(trek_id=trek.id).count()
+        trek_data.append({'trek': trek, 'booking_count': booking_count})
+    return render_template('staff_dashboard.html', trek_data=trek_data)
+
+
+@app.route('/staff/trek/<int:trek_id>', methods=['GET', 'POST'])
+@login_required(role='staff')
+def staff_manage_trek(trek_id):
+    staff_profile = StaffProfile.query.filter_by(user_id=session['user_id']).first()
+    trek = Trek.query.get_or_404(trek_id)
+
+    # make sure this staff member is actually assigned to this trek
+    if trek.staff_id != staff_profile.id:
+        flash('You are not assigned to this trek.')
+        return redirect(url_for('staff_dashboard'))
+
+    if request.method == 'POST':
+        new_status = request.form.get('status')
+        new_slots = request.form.get('available_slots')
+
+        # only allow staff-level status transitions
+        allowed_statuses = ['Approved', 'Open', 'Closed', 'Completed']
+        if new_status in allowed_statuses:
+            trek.status = new_status
+
+        if new_slots:
+            new_slots = int(new_slots)
+            # prevent setting available slots higher than total slots
+            if new_slots <= trek.total_slots:
+                trek.available_slots = new_slots
+            else:
+                flash('Available slots cannot exceed total slots.')
+                return redirect(url_for('staff_manage_trek', trek_id=trek.id))
+
+        db.session.commit()
+        flash('Trek updated successfully.')
+        return redirect(url_for('staff_manage_trek', trek_id=trek.id))
+
+    participants = Booking.query.filter_by(trek_id=trek.id).all()
+    return render_template('staff_manage_trek.html', trek=trek, participants=participants)
+
+@app.route('/staff/profile', methods=['GET', 'POST'])
+@login_required(role='staff')
+def staff_profile_edit():
+    user = User.query.get_or_404(session['user_id'])
+    staff_profile = StaffProfile.query.filter_by(user_id=session['user_id']).first()
+
+    if request.method == 'POST':
+        user.name = request.form.get('name')
+        staff_profile.phone_number = request.form.get('phone_number')
+        staff_profile.experience_years = request.form.get('experience_years')
+        db.session.commit()
+        flash('Profile updated successfully.')
+        return redirect(url_for('staff_dashboard'))
+
+    return render_template('staff_profile.html', user=user, staff_profile=staff_profile)
 
 with app.app_context():
     db.create_all()

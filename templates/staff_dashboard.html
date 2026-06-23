@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Staff Dashboard</h2>
+<a href="{{ url_for('staff_profile_edit') }}" class="btn btn-secondary btn-sm mb-3">Edit My Profile</a>
+
+{% if trek_data %}
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>Trek ID</th>
+            <th>Trek Name</th>
+            <th>Location</th>
+            <th>Difficulty</th>
+            <th>Start Date</th>
+            <th>Status</th>
+            <th>Available Slots</th>
+            <th>Registered Trekkers</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in trek_data %}
+        <tr>
+            <td>{{ item.trek.id }}</td>
+            <td>{{ item.trek.name }}</td>
+            <td>{{ item.trek.location }}</td>
+            <td>{{ item.trek.difficulty }}</td>
+            <td>{{ item.trek.start_date }}</td>
+            <td>{{ item.trek.status }}</td>
+            <td>{{ item.trek.available_slots }} / {{ item.trek.total_slots }}</td>
+            <td>{{ item.booking_count }}</td>
+            <td>
+                <a href="{{ url_for('staff_manage_trek', trek_id=item.trek.id) }}" class="btn btn-sm btn-primary">Manage</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p class="mt-3">No treks assigned to you yet. Please wait for the admin to assign a trek.</p>
+{% endif %}
+{% endblock %}
