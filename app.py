@@ -127,14 +127,6 @@ def logout():
     return redirect(url_for('login'))
 
 
-
-
-@app.route('/user/dashboard')
-@login_required(role='trekker')
-def user_dashboard():
-    return f"Welcome {session.get('name')} (dashboard coming soon)"
-
-
 @app.route('/admin/dashboard')
 @login_required(role='admin')
 def admin_dashboard():
@@ -305,7 +297,7 @@ def staff_dashboard():
     assigned_treks = Trek.query.filter_by(staff_id=staff_profile.id).all()
     trek_data = []
     for trek in assigned_treks:
-        booking_count = Booking.query.filter_by(trek_id=trek.id).count()
+        booking_count = Booking.query.filter_by(trek_id=trek.id, status='Booked').count()
         trek_data.append({'trek': trek, 'booking_count': booking_count})
     return render_template('staff_dashboard.html', trek_data=trek_data)
 
@@ -343,7 +335,7 @@ def staff_manage_trek(trek_id):
         flash('Trek updated successfully.')
         return redirect(url_for('staff_manage_trek', trek_id=trek.id))
 
-    participants = Booking.query.filter_by(trek_id=trek.id).all()
+    participants = Booking.query.filter_by(trek_id=trek.id, status='Booked').all()
     return render_template('staff_manage_trek.html', trek=trek, participants=participants)
 
 @app.route('/staff/profile', methods=['GET', 'POST'])
@@ -361,6 +353,108 @@ def staff_profile_edit():
         return redirect(url_for('staff_dashboard'))
 
     return render_template('staff_profile.html', user=user, staff_profile=staff_profile)
+
+@app.route('/user/dashboard')
+@login_required(role='trekker')
+def user_dashboard():
+    # search and filter
+    search = request.args.get('search', '')
+    difficulty = request.args.get('difficulty', '')
+    location = request.args.get('location', '')
+
+    treks_query = Trek.query.filter_by(status='Open')
+
+    if search:
+        treks_query = treks_query.filter(Trek.name.ilike(f'%{search}%'))
+    if difficulty:
+        treks_query = treks_query.filter_by(difficulty=difficulty)
+    if location:
+        treks_query = treks_query.filter(Trek.location.ilike(f'%{location}%'))
+
+    open_treks = treks_query.all()
+
+    # get this user's bookings
+    my_bookings = Booking.query.filter_by(user_id=session['user_id']).all()
+
+    return render_template('user_dashboard.html',
+                           open_treks=open_treks,
+                           my_bookings=my_bookings,
+                           search=search,
+                           difficulty=difficulty,
+                           location=location)
+
+
+@app.route('/user/book/<int:trek_id>', methods=['POST'])
+@login_required(role='trekker')
+def user_book_trek(trek_id):
+    trek = Trek.query.get_or_404(trek_id)
+
+    # rule 1: trek must be open
+    if trek.status != 'Open':
+        flash('This trek is not open for booking.')
+        return redirect(url_for('user_dashboard'))
+
+    # rule 2: slots must be available
+    if trek.available_slots <= 0:
+        flash('This trek is fully booked.')
+        return redirect(url_for('user_dashboard'))
+
+    # rule 3: user must not have already booked this trek
+    existing = Booking.query.filter_by(
+        user_id=session['user_id'],
+        trek_id=trek_id
+    ).first()
+    if existing:
+        flash('You have already booked this trek.')
+        return redirect(url_for('user_dashboard'))
+
+    # all checks passed — create booking
+    new_booking = Booking(
+        user_id=session['user_id'],
+        trek_id=trek_id,
+        status='Booked'
+    )
+    db.session.add(new_booking)
+    trek.available_slots -= 1
+    db.session.commit()
+    flash('Trek booked successfully!')
+    return redirect(url_for('user_dashboard'))
+
+
+@app.route('/user/cancel/<int:booking_id>', methods=['POST'])
+@login_required(role='trekker')
+def user_cancel_booking(booking_id):
+    booking = Booking.query.get_or_404(booking_id)
+
+    # make sure this booking belongs to the logged in user
+    if booking.user_id != session['user_id']:
+        flash('Unauthorized action.')
+        return redirect(url_for('user_dashboard'))
+
+    if booking.status != 'Booked':
+        flash('Only active bookings can be cancelled.')
+        return redirect(url_for('user_dashboard'))
+
+    booking.status = 'Cancelled'
+    booking.trek.available_slots += 1
+    db.session.commit()
+    flash('Booking cancelled.')
+    return redirect(url_for('user_dashboard'))
+
+
+@app.route('/user/profile', methods=['GET', 'POST'])
+@login_required(role='trekker')
+def user_profile():
+    user = User.query.get_or_404(session['user_id'])
+
+    if request.method == 'POST':
+        user.name = request.form.get('name')
+        db.session.commit()
+        session['name'] = user.name
+        flash('Profile updated successfully.')
+        return redirect(url_for('user_dashboard'))
+
+    return render_template('user_profile.html', user=user)
 
 with app.app_context():
     db.create_all()
