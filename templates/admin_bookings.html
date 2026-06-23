@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>All Bookings</h2>
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-sm mb-3">← Back to Dashboard</a>
+
+<form method="GET" class="mb-3">
+    <div class="input-group" style="max-width: 400px;">
+        <input type="text" name="q" class="form-control" placeholder="Search by trek or user name" value="{{ query }}">
+        <button type="submit" class="btn btn-outline-secondary">Search</button>
+    </div>
+</form>
+
+{% if all_bookings %}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Booking ID</th>
+            <th>User Name</th>
+            <th>User Email</th>
+            <th>Trek Name</th>
+            <th>Location</th>
+            <th>Trek Status</th>
+            <th>Booking Date</th>
+            <th>Booking Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for booking in all_bookings %}
+        <tr>
+            <td>{{ booking.id }}</td>
+            <td>{{ booking.user.name }}</td>
+            <td>{{ booking.user.email }}</td>
+            <td>{{ booking.trek.name }}</td>
+            <td>{{ booking.trek.location }}</td>
+            <td>{{ booking.trek.status }}</td>
+            <td>{{ booking.booking_date.strftime('%Y-%m-%d') }}</td>
+            <td>{{ booking.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+    <p>No bookings found.</p>
+{% endif %}
+{% endblock %}

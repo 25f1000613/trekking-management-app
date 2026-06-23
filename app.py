@@ -321,6 +321,12 @@ def staff_manage_trek(trek_id):
         allowed_statuses = ['Approved', 'Open', 'Closed', 'Completed']
         if new_status in allowed_statuses:
             trek.status = new_status
+            if new_status == 'Completed':
+                active_bookings = Booking.query.filter_by(
+                    trek_id=trek.id, status='Booked'
+                ).all()
+                for booking in active_bookings:
+                    booking.status = 'Completed'
 
         if new_slots:
             new_slots = int(new_slots)
@@ -431,8 +437,8 @@ def user_cancel_booking(booking_id):
         flash('Unauthorized action.')
         return redirect(url_for('user_dashboard'))
 
-    if booking.status != 'Booked':
-        flash('Only active bookings can be cancelled.')
+    if booking.status != 'Booked' or booking.trek.status == 'Completed':
+        flash('This booking cannot be cancelled.')
         return redirect(url_for('user_dashboard'))
 
     booking.status = 'Cancelled'
@@ -455,6 +461,18 @@ def user_profile():
         return redirect(url_for('user_dashboard'))
 
     return render_template('user_profile.html', user=user)
+
+@app.route('/admin/bookings')
+@login_required(role='admin')
+def admin_bookings():
+    query = request.args.get('q', '')
+    bookings_query = Booking.query.join(Trek).join(User)
+    if query:
+        bookings_query = bookings_query.filter(
+            Trek.name.ilike(f'%{query}%') | User.name.ilike(f'%{query}%')
+        )
+    all_bookings = bookings_query.all()
+    return render_template('admin_bookings.html', all_bookings=all_bookings, query=query)
 
 with app.app_context():
     db.create_all()
